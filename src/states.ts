@@ -26,6 +26,8 @@ export interface StatusJson {
   journal_open: boolean;
   mappings: MappingJson[];
   removal?: string;
+  /** Another SaveTether process holds the operation lock (CLI 0.7.0-beta2); absent from an older CLI. */
+  operation_running?: boolean;
 }
 
 /** The `status --json` envelope. */
