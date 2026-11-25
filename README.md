@@ -63,7 +63,7 @@ CI runs all three on every push and pull request. A tag `vX.Y.Z` (on `main`) or 
 
 For tests on the Deck only, the backend reads an optional `savetether_home` from `settings.json` in the plugin's Decky settings folder (`~/homebrew/settings/SaveTether`) and uses it as `SAVETETHER_HOME`. It is refused unless it lies under `~/sttest/`.
 
-`scripts/qam-check.mjs` checks the panel in Game Mode through the CEF debugger: it opens the panel, presses Check now, and compares what it shows with a file in `scripts/expected/`. `scripts/deck-scenarios.sh`, run on the Deck, builds the throwaway setups those files describe; its `showcase` setup is the one in the screenshot above. How to run them is in SaveTether's `docs/testing/hardware-testing.md`.
+`scripts/qam-check.mjs` checks the panel in Game Mode through the CEF debugger: it opens the panel, presses Check now, and compares what it shows with a file in `scripts/expected/`. `scripts/deck-scenarios.sh`, run on the Deck, builds the throwaway setups those files describe; its `showcase` setup is the one in the screenshot above. It also reads the plugin's `[SaveTether] toast` log lines, so the toast scenarios check when a toast is shown, muted or hidden by Steam. How to run them is in SaveTether's `docs/testing/hardware-testing.md`.
 
 The phase plan, the tasks and the test flow on the Deck are in SaveTether's repository: `docs/plans/phase-4-decky-plugin.md` and `docs/testing/hardware-testing.md`.
 
