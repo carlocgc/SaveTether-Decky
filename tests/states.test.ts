@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import {
   cardFor,
   cardsFor,
+  failureOverall,
   formatSize,
   overall,
   sizeLine,
@@ -132,4 +133,18 @@ test("sizes use the CLI's units", () => {
   assert.equal(formatSize(18.4 * 2 ** 20), "18.4 MiB");
   assert.equal(formatSize(3 * 2 ** 30), "3.0 GiB");
   assert.equal(sizeLine({ mappingId: "a.b", appName: "a", role: "b", word: "", shade: "green", detail: "", bytes: 5, files: 1 }), "5 bytes · 1 file");
+});
+
+test("backend failures have their own headline", () => {
+  assert.deepEqual(failureOverall({ error: "cli-missing", message: "/home/deck/.local/bin/savetether" }), {
+    headline: "Install SaveTether in Desktop Mode",
+    shade: "amber",
+    detail: "Not found: /home/deck/.local/bin/savetether",
+  });
+  assert.equal(failureOverall({ error: "timeout", message: "savetether did not answer within 20 s" }).headline, "Sync folder not available");
+  assert.deepEqual(failureOverall({ error: "bad-output", message: "Segmentation fault" }), {
+    headline: "Check failed",
+    shade: "amber",
+    detail: "Segmentation fault",
+  });
 });
