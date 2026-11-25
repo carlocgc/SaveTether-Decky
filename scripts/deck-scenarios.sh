@@ -5,7 +5,10 @@
 #
 #   deck-scenarios.sh setup        build homes a, b, c and d
 #   deck-scenarios.sh showcase     build home s, for the README's screenshot
-#   deck-scenarios.sh use <a|b|c|d|s> point the plugin at that home (its settings.json)
+#   deck-scenarios.sh toasts       build home t, five apps linked, for the toast scenarios (g) to (l)
+#   deck-scenarios.sh break <id>   in home t, replace that app's link by a folder holding a file
+#   deck-scenarios.sh fix <id>     in home t, put that link back
+#   deck-scenarios.sh use <a|b|c|d|s|t> point the plugin at that home (its settings.json)
 #   deck-scenarios.sh real         point the plugin back at the real setup (removes settings.json)
 #   deck-scenarios.sh cleanup      the same, unmount d, and remove ~/sttest/decky
 set -uo pipefail
@@ -76,8 +79,43 @@ showcase() {
   echo "built s in $root"
 }
 
+toast_ids="ppsspp.savedata dolphin.gc duckstation.memcards pcsx2.memcards ryujinx.saves"
+
+# Five apps, one link each, all linked: the toast scenarios break and fix them one at a time.
+toasts() {
+  [ -e "$root/t" ] && { echo "$root/t exists: run cleanup first" >&2; exit 1; }
+  local id
+  mkdir -p "$root/t/sync"
+  st t init --sync-root "$root/t/sync" --device decky-test --create-root --backup-root "$root/t/backups"
+  for id in $toast_ids; do
+    mkdir -p "$root/t/saves/$id" && echo "$id" > "$root/t/saves/$id/save.bin"
+    st t map add "$id" --target "${id/./\/}" --source "$root/t/saves/$id"
+    st t apply "$id" --copy --assume-closed
+  done
+  echo "built t in $root"
+}
+
+# The save folder of one of home t's apps; any other ID is refused, so nothing outside home t is touched.
+saves_of() {
+  case " $toast_ids " in *" ${1:-} "*) ;; *) echo "give one of: $toast_ids" >&2; return 1;; esac
+  echo "$root/t/saves/$1"
+}
+
+# Broken as (b) is: the link set aside as <id>.st-link, a real folder holding a file in its place.
+break_link() {
+  local src; src=$(saves_of "${1:-}") || exit 1
+  [ -L "$src" ] || { echo "$src is not a link: already broken?" >&2; exit 1; }
+  mv "$src" "$src.st-link" && mkdir "$src" && echo local > "$src/new.bin"
+}
+
+fix_link() {
+  local src; src=$(saves_of "${1:-}") || exit 1
+  [ -L "$src.st-link" ] || { echo "$src is not broken" >&2; exit 1; }
+  rm -rf "$src" && mv "$src.st-link" "$src"
+}
+
 use() {
-  case "${1:-}" in a|b|c|d|s) ;; *) echo "use a, b, c, d or s" >&2; exit 1;; esac
+  case "${1:-}" in a|b|c|d|s|t) ;; *) echo "use a, b, c, d, s or t" >&2; exit 1;; esac
   mkdir -p "$(dirname "$settings")"
   printf '{"savetether_home": "%s"}\n' "$root/$1/home" > "$settings"
 }
@@ -93,8 +131,11 @@ cleanup() {
 case "${1:-}" in
   setup) setup ;;
   showcase) showcase ;;
+  toasts) toasts ;;
+  break) break_link "${2:-}" ;;
+  fix) fix_link "${2:-}" ;;
   use) use "${2:-}" ;;
   real) real ;;
   cleanup) cleanup ;;
-  *) sed -n '5,10p' "$0"; exit 1 ;;
+  *) sed -n '5,13p' "$0"; exit 1 ;;
 esac
