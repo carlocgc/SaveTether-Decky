@@ -1,0 +1,7 @@
+{
+  "overall": { "shade": "amber", "headline": "Sync folder not available" },
+  "cards": [
+    { "id": "dolphin.gc", "state": "Shared folder missing", "name": "Dolphin" },
+    { "id": "ppsspp.savedata", "state": "Shared folder missing", "name": "PPSSPP" }
+  ]
+}
