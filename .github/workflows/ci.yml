@@ -1,0 +1,31 @@
+name: CI
+
+on:
+  push:
+    branches: [main, development]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install
+        run: corepack pnpm@9 install --frozen-lockfile
+
+      - name: Build
+        run: corepack pnpm@9 run build
+
+      - name: Test the frontend
+        run: corepack pnpm@9 test
+
+      - name: Test the backend
+        run: python3 -m unittest discover -s tests -v
