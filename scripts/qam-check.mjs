@@ -92,6 +92,7 @@ async function main() {
 if (!args.expect === !args.status) fail("give exactly one of --expect <file> or --status <file>");
 if (args.listen && !args.expect) fail("--listen needs --expect");
 if (args.mute && !/^(on|off)$/.test(args.mute)) fail("--mute takes on or off");
+if (args.listen && !(Number(args.listen) > 0)) fail("--listen takes seconds");
 
 // 1. The shared context, where Steam's and Decky's globals live, and where the plugin logs its toasts.
 const shared = (await targets()).find((t) => t.title === "SharedJSContext");
@@ -153,8 +154,8 @@ await until("the SaveTether panel", () => qam.evaluate(`!!document.querySelector
 const findButton = `[...document.querySelectorAll("div, button")].filter((e) => /^(Check now|Checking…)$/.test(e.textContent.trim())).pop()`;
 await until("the panel's first check to finish", () => qam.evaluate(`${findButton}?.textContent.trim() === "Check now"`), CHECK_LIMIT_MS);
 
-// Mute: clicks Steam's toggle inside the row the plugin marks, then waits for the switch's new value (written
-// through the CLI). Before Check now, so that check sees it.
+// Mute: clicks Steam's toggle inside the row the plugin marks, then waits for the row to show the click. The
+// panel shows it before the CLI has written it, so a run's `muted` is checked on the next run's opening check.
 if (args.mute) {
   const want = String(args.mute === "on");
   const clicked = await qam.evaluate(`(() => {
