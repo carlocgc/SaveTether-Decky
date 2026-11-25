@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { createMonitor } from "../src/monitor.ts";
+import { createMonitor, gate } from "../src/monitor.ts";
 import type { BackendResult, MappingJson, StatusEnvelope, StatusJson } from "../src/states.ts";
 
 // Shapes as SaveTether's tests/SaveTether.Tests/Cli/json-shapes.txt gives them for `status --json`.
@@ -119,4 +119,11 @@ test("a CLI error with no status is one device-wide problem", () => {
     ok: true, exit_code: 3, json: { schema: 1, command: "status", exit_code: 3, problem: "not-found", error: "No setup." },
   };
   assert.equal(createMonitor().accept(result), "Cannot check this device.");
+});
+
+test("gate: mute wins over Steam's setting, which wins over showing", () => {
+  assert.equal(gate(false, false), "show");
+  assert.equal(gate(false, true), "hidden");
+  assert.equal(gate(true, false), "muted");
+  assert.equal(gate(true, true), "muted");
 });
