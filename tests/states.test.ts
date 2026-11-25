@@ -7,6 +7,7 @@ import {
   formatSize,
   overall,
   sizeLine,
+  withoutCliHint,
   wordFor,
   type MappingJson,
   type StatusEnvelope,
@@ -72,6 +73,14 @@ test("the card takes the app name from app list, or the ID before the dot", () =
   assert.equal(sizeLine(cardFor(mapping("dolphin.gc", "ok"))), "size unknown");
 });
 
+test("a card drops the CLI's command hint, since Game Mode has no terminal", () => {
+  const detail = "The save folder holds files again. Run 'savetether apply ppsspp.savedata'.";
+  assert.equal(cardFor(mapping("ppsspp.savedata", "replaced", "folder-holds-files", { detail })).detail,
+    "The save folder holds files again.");
+  assert.equal(withoutCliHint("Run 'savetether recover'."), "");
+  assert.equal(withoutCliHint("The shared folder is missing."), "The shared folder is missing.");
+});
+
 test("cards needing attention come first, then by name", () => {
   const cards = cardsFor(
     envelope({
@@ -121,7 +130,7 @@ test("a refused status shows the CLI's sentence", () => {
     problem: "not-found",
     error: "This device is not set up yet. Run 'savetether init --sync-root <path>' first.",
   };
-  assert.deepEqual(overall(notSetUp), { headline: "Cannot check this device", shade: "amber", detail: notSetUp.error });
+  assert.deepEqual(overall(notSetUp), { headline: "Cannot check this device", shade: "amber", detail: "This device is not set up yet." });
   assert.equal(overall({ ...notSetUp, problem: "schema-too-new" }).headline, "Update SaveTether");
   assert.deepEqual(cardsFor(notSetUp), []);
 });
