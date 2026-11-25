@@ -1,0 +1,11 @@
+{
+  "name": "SaveTether",
+  "author": "SaveTether contributors",
+  "flags": [],
+  "api_version": 1,
+  "publish": {
+    "tags": ["saves", "sync", "backup"],
+    "description": "Shows the health of SaveTether's save folder links in Game Mode.",
+    "image": "https://opengraph.githubassets.com/1/carlocgc/SaveTether-Decky"
+  }
+}
