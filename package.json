@@ -6,7 +6,7 @@
   "scripts": {
     "build": "rollup -c",
     "watch": "rollup -c -w",
-    "test": "tsc --noEmit --skipLibCheck && node --test \"tests/*.test.ts\""
+    "test": "tsc -p tests && node --test \"tests/*.test.ts\""
   },
   "repository": {
     "type": "git",
