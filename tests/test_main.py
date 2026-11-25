@@ -24,6 +24,7 @@ case "$FAKE_CLI_MODE" in
   sleep) sleep 30 ;;
   old) case "$*" in *--sizes*) echo "unknown option --sizes" >&2; exit 64 ;; esac ;;
   garbage) echo "not json"; exit 1 ;;
+  nocommand) echo '{"command":"usage","exit_code":64}'; exit 64 ;;
 esac
 printf '{"args":"%s","home":"%s"}\\n' "$*" "${SAVETETHER_HOME:-}"
 exit 0
@@ -45,8 +46,8 @@ class BackendTests(unittest.TestCase):
         os.environ.pop("FAKE_CLI_MODE", None)
         os.environ.pop("SAVETETHER_HOME", None)
 
-    def run_call(self, name):
-        return asyncio.run(getattr(main.Plugin(), name)())
+    def run_call(self, name, *args):
+        return asyncio.run(getattr(main.Plugin(), name)(*args))
 
     def set_home(self, path):
         with open(os.path.join(decky.DECKY_PLUGIN_SETTINGS_DIR, "settings.json"), "w") as f:
@@ -55,6 +56,22 @@ class BackendTests(unittest.TestCase):
     def test_status_passes_json_through(self):
         r = self.run_call("status")
         self.assertEqual(r, {"ok": True, "exit_code": 0, "json": {"args": "status --json --sizes", "home": ""}})
+
+    def test_status_without_sizes(self):
+        r = self.run_call("status", False)
+        self.assertEqual(r["json"]["args"], "status --json")
+
+    def test_notifications_reads_and_sets(self):
+        for args, expected in [((), "notifications --json"),
+                               ((True,), "notifications on --json"),
+                               ((False,), "notifications off --json")]:
+            with self.subTest(args=args):
+                self.assertEqual(self.run_call("notifications", *args)["json"]["args"], expected)
+
+    def test_notifications_on_an_older_cli_passes_exit_64_through(self):
+        os.environ["FAKE_CLI_MODE"] = "nocommand"
+        r = self.run_call("notifications")
+        self.assertEqual((r["ok"], r["exit_code"]), (True, 64))
 
     def test_apps(self):
         r = self.run_call("apps")
