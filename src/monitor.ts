@@ -55,3 +55,13 @@ export function createMonitor(): Monitor {
     },
   };
 }
+
+export type Gate = "muted" | "hidden" | "show";
+
+/**
+ * What happens to a due toast: muted by the device's switch (not sent), sent but hidden by Steam's "Show
+ * Notification Toasts" set to Never (Steam drops it, the plugin only logs it), or shown.
+ */
+export function gate(muted: boolean, steamOff: boolean): Gate {
+  return muted ? "muted" : steamOff ? "hidden" : "show";
+}

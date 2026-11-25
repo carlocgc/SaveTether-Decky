@@ -1,11 +1,16 @@
-import { ButtonItem, Focusable, PanelSection, PanelSectionRow, staticClasses } from "@decky/ui";
-import { callable, definePlugin } from "@decky/api";
+import { ButtonItem, Focusable, PanelSection, PanelSectionRow, ToggleField, staticClasses } from "@decky/ui";
+import { callable, definePlugin, toaster } from "@decky/api";
 import { useEffect, useState, type CSSProperties } from "react";
 import { FaLink, FaSyncAlt } from "react-icons/fa";
+import { createMonitor, gate } from "./monitor";
 import { cardsFor, failureOverall, overall, sizeLine, type BackendResult, type Card, type Overall, type Shade, type StatusEnvelope } from "./states";
 
-const status = callable<[], BackendResult<StatusEnvelope>>("status");
+const status = callable<[sizes: boolean], BackendResult<StatusEnvelope>>("status");
 const apps = callable<[], BackendResult<{ apps?: { id: string; name?: string }[] }>>("apps");
+const notifications = callable<[on?: boolean], BackendResult<{ notifications?: { on?: boolean } }>>("notifications");
+
+/** Background checks, without sizes: sizes walk every shared folder. */
+const CHECK_EVERY_MS = 5 * 60_000;
 
 // The mockup's colours (docs/design/decky-mockup.html in SaveTether).
 const BAR: Record<Shade, string> = { green: "#59bf40", grey: "#67707b", amber: "#e8a23a" };
@@ -22,22 +27,68 @@ interface View {
   device?: string;
   syncRoot?: string;
   checkedAt: string;
+  /** The device's notifications switch, inverted; undefined when the CLI has no `notifications` command. */
+  muted?: boolean;
 }
 
-async function check(): Promise<View> {
-  const [s, a] = await Promise.all([status(), apps()]);
+/** The switch as Mute shows it, from a `notifications` result; undefined for an older CLI (exit 64) or a failure. */
+function mutedFrom(n: Awaited<ReturnType<typeof notifications>>): boolean | undefined {
+  return n.ok && typeof n.json.notifications?.on === "boolean" ? !n.json.notifications.on : undefined;
+}
+
+// One monitor for the panel's checks and the background ones, as the desktop app counts both.
+const monitor = createMonitor();
+
+/** Steam's "Show Notification Toasts" set to Never. An undocumented internal, read only for the log line. */
+function steamToastsOff(): boolean {
+  try {
+    return (window as any).settingsStore?.m_ClientSettings?.disable_all_toasts === true;
+  } catch {
+    return false;
+  }
+}
+
+// Never `critical: true`, which would pass Steam's toast setting. The harness reads these log lines.
+function notify(body: string, muted: boolean) {
+  const g = gate(muted, steamToastsOff());
+  if (g === "muted") return console.log(`[SaveTether] toast muted: ${body}`);
+  toaster.toast({ title: "SaveTether", body });
+  console.log(g === "hidden" ? `[SaveTether] toast hidden by Steam: ${body}` : `[SaveTether] toast: ${body}`);
+}
+
+async function check(sizes: boolean): Promise<View> {
+  const [s, a, n] = await Promise.all([status(sizes), apps(), notifications()]);
   const names: Record<string, string> = {};
   // Names are a nicety: without them a card shows the app's ID.
   if (a.ok) for (const app of a.json.apps ?? []) if (app.name) names[app.id] = app.name;
+  const muted = mutedFrom(n);
+  const body = monitor.accept(s, names);
+  if (body) notify(body, muted === true); // an older CLI has no switch: on, as the desktop's default
   const checkedAt = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: false });
-  if (!s.ok) return { overall: failureOverall(s), cards: [], checkedAt };
+  if (!s.ok) return { overall: failureOverall(s), cards: [], checkedAt, muted };
   return {
     overall: overall(s.json, names),
     cards: cardsFor(s.json, names),
     device: s.json.status?.device_name,
     syncRoot: s.json.status?.sync_root,
     checkedAt,
+    muted,
   };
+}
+
+// One check at a time: a panel check waits for a running one; a background tick skips while one runs.
+let queue: Promise<unknown> = Promise.resolve();
+let pending = 0;
+
+function checkInTurn(sizes: boolean): Promise<View> {
+  pending++;
+  const next = queue.then(() => check(sizes)).finally(() => pending--);
+  queue = next.catch(() => {});
+  return next;
+}
+
+function backgroundCheck() {
+  if (pending === 0) checkInTurn(false).catch((e) => console.error("[SaveTether] background check failed:", e));
 }
 
 function OverviewBlock({ view, checking }: { view?: View; checking: boolean }) {
@@ -100,7 +151,7 @@ function Content() {
   const run = async () => {
     setChecking(true);
     try {
-      setView(await check());
+      setView(await checkInTurn(true));
     } catch (e) {
       setView({ overall: { headline: "Check failed", shade: "amber", detail: String(e) }, cards: [], checkedAt: "" });
     } finally {
@@ -108,7 +159,16 @@ function Content() {
     }
   };
 
-  // Checks when the panel opens and on Check now only: no background polling, to spare the battery.
+  const setMute = async (muted: boolean) => {
+    if (!view) return;
+    setView({ ...view, muted });
+    const n = await notifications(!muted).catch(() => undefined);
+    // Shows what the switch says now: on a failed write, the old value comes back.
+    const now = n ? mutedFrom(n) : undefined;
+    setView((v) => v && { ...v, muted: now ?? !muted });
+  };
+
+  // Checks when the panel opens and on Check now; the background checks run from definePlugin.
   useEffect(() => {
     void run();
   }, []);
@@ -129,6 +189,13 @@ function Content() {
             </div>
           </ButtonItem>
         </PanelSectionRow>
+        {view?.muted !== undefined && (
+          <PanelSectionRow>
+            <div data-st-muted={String(view.muted)}>
+              <ToggleField label="Mute notifications" checked={view.muted} onChange={(m) => void setMute(m)} />
+            </div>
+          </PanelSectionRow>
+        )}
       </PanelSection>
       {view && view.cards.length > 0 && (
         <PanelSection title="Links">
@@ -141,9 +208,20 @@ function Content() {
   );
 }
 
-export default definePlugin(() => ({
-  name: "SaveTether",
-  titleView: <div className={staticClasses.Title}>SaveTether</div>,
-  content: <Content />,
-  icon: <FaLink />,
-}));
+export default definePlugin(() => {
+  // Kept on window, not in the module: a hot reload loads a new module and may skip onDismount.
+  const w = window as { saveTetherTimer?: ReturnType<typeof setInterval> };
+  clearInterval(w.saveTetherTimer);
+  w.saveTetherTimer = setInterval(backgroundCheck, CHECK_EVERY_MS);
+  backgroundCheck(); // at load: an amber setup toasts once after boot, as the desktop app at login
+  return {
+    name: "SaveTether",
+    titleView: <div className={staticClasses.Title}>SaveTether</div>,
+    content: <Content />,
+    icon: <FaLink />,
+    onDismount() {
+      clearInterval(w.saveTetherTimer);
+      w.saveTetherTimer = undefined;
+    },
+  };
+});
