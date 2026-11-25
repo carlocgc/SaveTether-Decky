@@ -43,27 +43,29 @@ test("all linked toasts nothing", () => {
   assert.equal(createMonitor().accept(ok([linked]), names), null);
 });
 
-test("a problem is toasted once, in the desktop app's words", () => {
-  // As HealthMonitorTests.A_problem_is_notified_once_not_at_every_check.
+test("a problem is toasted once, as the panel's headline", () => {
+  // The rules of HealthMonitorTests.A_problem_is_notified_once_not_at_every_check; the text is a count.
   const monitor = createMonitor();
   assert.equal(monitor.accept(ok([linked]), names), null);
-  assert.equal(monitor.accept(ok([linked, ryujinxNotLinked]), names), "Ryujinx saves: not linked.");
+  assert.equal(monitor.accept(ok([linked, ryujinxNotLinked]), names), "1 app needs attention.");
   assert.equal(monitor.accept(ok([linked, ryujinxNotLinked]), names), null);
 
-  // A second problem: only the new one is named.
-  assert.equal(monitor.accept(ok([ryujinxNotLinked, edenBroken]), names), "Eden save: shared folder missing.");
+  // A second problem: toasted with the new count.
+  assert.equal(monitor.accept(ok([ryujinxNotLinked, edenBroken]), names), "2 apps need attention.");
+  // Another link of an app already counted is still a new problem.
+  assert.equal(monitor.accept(ok([ryujinxNotLinked, edenBroken, mapping("eden.config", "broken")]), names),
+    "2 apps need attention.");
 
   // Fixed, then broken again: new again.
   assert.equal(monitor.accept(ok([linked]), names), null);
-  assert.equal(monitor.accept(ok([ryujinxNotLinked]), names), "Ryujinx saves: not linked.");
+  assert.equal(monitor.accept(ok([ryujinxNotLinked]), names), "1 app needs attention.");
 
   // The same link in another amber state is a new problem.
-  assert.equal(monitor.accept(ok([mapping("ryujinx.saves", "replaced", "folder-empty")]), names), "Ryujinx saves: link missing.");
+  assert.equal(monitor.accept(ok([mapping("ryujinx.saves", "replaced", "folder-empty")]), names), "1 app needs attention.");
 });
 
 test("an amber state at start is toasted, and two new problems share one toast", () => {
-  assert.equal(createMonitor().accept(ok([edenBroken, ryujinxNotLinked]), names),
-    "Eden save: shared folder missing. Ryujinx saves: not linked.");
+  assert.equal(createMonitor().accept(ok([edenBroken, ryujinxNotLinked]), names), "2 apps need attention.");
 });
 
 test("a device-wide condition is one problem", () => {
@@ -76,7 +78,7 @@ test("a device-wide condition is one problem", () => {
 test("while another process holds the lock nothing changes, and the next free check still toasts", () => {
   const monitor = createMonitor();
   assert.equal(monitor.accept(ok([ryujinxNotLinked], { operation_running: true }), names), null);
-  assert.equal(monitor.accept(ok([ryujinxNotLinked]), names), "Ryujinx saves: not linked.");
+  assert.equal(monitor.accept(ok([ryujinxNotLinked]), names), "1 app needs attention.");
   // A held lock does not clear what was toasted either.
   assert.equal(monitor.accept(ok([linked], { operation_running: true }), names), null);
   assert.equal(monitor.accept(ok([ryujinxNotLinked]), names), null);
@@ -85,7 +87,7 @@ test("while another process holds the lock nothing changes, and the next free ch
 test("an older CLI without operation_running counts as free", () => {
   const result = ok([ryujinxNotLinked]);
   if (result.ok) delete result.json.status!.operation_running;
-  assert.equal(createMonitor().accept(result, names), "Ryujinx saves: not linked.");
+  assert.equal(createMonitor().accept(result, names), "1 app needs attention.");
 });
 
 test("three failed checks in a row toast once; fewer keep the last state", () => {
@@ -95,12 +97,12 @@ test("three failed checks in a row toast once; fewer keep the last state", () =>
   assert.equal(monitor.accept(failed), "Health check failed.");
   assert.equal(monitor.accept(failed), null);
   // Working again and amber: toasted, since the failure replaced it.
-  assert.equal(monitor.accept(ok([ryujinxNotLinked]), names), "Ryujinx saves: not linked.");
+  assert.equal(monitor.accept(ok([ryujinxNotLinked]), names), "1 app needs attention.");
 });
 
 test("a success resets the failure count, and failures keep what was toasted", () => {
   const monitor = createMonitor();
-  assert.equal(monitor.accept(ok([ryujinxNotLinked]), names), "Ryujinx saves: not linked.");
+  assert.equal(monitor.accept(ok([ryujinxNotLinked]), names), "1 app needs attention.");
   assert.equal(monitor.accept(failed), null);
   assert.equal(monitor.accept(failed), null);
   assert.equal(monitor.accept(ok([ryujinxNotLinked]), names), null);
@@ -108,8 +110,8 @@ test("a success resets the failure count, and failures keep what was toasted", (
   assert.equal(monitor.accept(failed), null);
 });
 
-test("a state a newer CLI adds is amber and toasted with its word", () => {
-  assert.equal(createMonitor().accept(ok([mapping("eden.save", "something-new")]), names), "Eden save: needs attention.");
+test("a state a newer CLI adds is amber and toasted", () => {
+  assert.equal(createMonitor().accept(ok([mapping("eden.save", "something-new")]), names), "1 app needs attention.");
 });
 
 test("a CLI error with no status is one device-wide problem", () => {
