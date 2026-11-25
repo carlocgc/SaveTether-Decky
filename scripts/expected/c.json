@@ -1,0 +1,7 @@
+{
+  "overall": { "shade": "amber", "headline": "1 app needs attention" },
+  "cards": [
+    { "id": "dolphin.gc", "state": "Shared folder missing", "name": "Dolphin" },
+    { "id": "ppsspp.savedata", "state": "Linked", "name": "PPSSPP" }
+  ]
+}
