@@ -172,3 +172,21 @@ export function sizeLine(card: Card): string {
   if (card.bytes === undefined || card.files === undefined) return "size unknown";
   return `${formatSize(card.bytes)} · ${card.files} ${card.files === 1 ? "file" : "files"}`;
 }
+
+/** What the Python backend returns (main.py): the CLI's JSON, or why there is none. */
+export type BackendResult<T> =
+  | { ok: true; exit_code: number; json: T }
+  | { ok: false; exit_code: number | null; error: string; message: string };
+
+/** The overall state when the backend got no JSON from the CLI. */
+export function failureOverall(result: { error: string; message: string }): Overall {
+  switch (result.error) {
+    case "cli-missing":
+      return { headline: "Install SaveTether in Desktop Mode", shade: "amber", detail: `Not found: ${result.message}` };
+    case "timeout":
+      // A sync folder on a mount that stopped answering is the likely cause (a dead network or overlay mount).
+      return { headline: "Sync folder not available", shade: "amber", detail: `${result.message}. The sync folder may not be answering.` };
+    default:
+      return { headline: "Check failed", shade: "amber", detail: result.message };
+  }
+}
