@@ -43,7 +43,8 @@ async function check(): Promise<View> {
 function OverviewBlock({ view, checking }: { view?: View; checking: boolean }) {
   const o = view?.overall ?? { headline: "Checking…", shade: "grey" as Shade };
   return (
-    <div style={box}>
+    // Focusable so that moving up stops here and scrolls it into view before the back button.
+    <Focusable onActivate={() => {}} focusClassName="st-focus" style={box}>
       <div style={row1} data-st-overall={o.shade}>
         <span style={dot(o.shade)} />
         {o.headline}
@@ -58,7 +59,7 @@ function OverviewBlock({ view, checking }: { view?: View; checking: boolean }) {
       {view && !checking && (
         <div style={{ color: MUTED }}>{[view.device, `checked ${view.checkedAt}`].filter(Boolean).join(" · ")}</div>
       )}
-    </div>
+    </Focusable>
   );
 }
 
