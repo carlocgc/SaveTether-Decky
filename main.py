@@ -73,14 +73,20 @@ async def _run(*args):
 
 
 class Plugin:
-    async def status(self):
-        result = await _run("status", "--json", "--sizes")
-        if result.get("exit_code") == EXIT_USAGE:
-            result = await _run("status", "--json")  # an older CLI without --sizes
-        return result
+    async def status(self, sizes: bool = True):
+        if sizes:
+            result = await _run("status", "--json", "--sizes")
+            if result.get("exit_code") != EXIT_USAGE:
+                return result
+        return await _run("status", "--json")  # also the retry for an older CLI without --sizes
 
     async def apps(self):
         return await _run("app", "list", "--json")
+
+    async def notifications(self, on: bool | None = None):
+        """Reads the device's notifications switch, or sets it. A CLI without the command exits 64."""
+        value = [] if on is None else ["on" if on else "off"]
+        return await _run("notifications", *value, "--json")
 
     async def _main(self):
         decky.logger.info("SaveTether plugin loaded")

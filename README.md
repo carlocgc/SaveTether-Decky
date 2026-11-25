@@ -44,7 +44,7 @@ Releases tagged on `main` are stable; tags with a suffix (`v0.2.0-beta1`) are pr
 
 ## How it works
 
-- **Backend** (`main.py`): runs `savetether status --json --sizes` and `savetether app list --json` as the `deck` user, and passes the JSON through untouched. It retries without `--sizes` for CLIs older than 0.7.0, and kills the CLI's whole process group on timeout.
+- **Backend** (`main.py`): runs `savetether status --json --sizes` and `savetether app list --json` (and can read or set `savetether notifications`) as the `deck` user, and passes the JSON through untouched. It retries without `--sizes` for CLIs older than 0.7.0, and kills the CLI's whole process group on timeout.
 - **Frontend** (`src/`): React with `@decky/ui`. `states.ts` maps SaveTether's [JSON contract](https://github.com/carlocgc/SaveTether/blob/main/docs/cli-json.md) to the words and colours SaveTether's desktop app uses; states it does not know show amber with the CLI's sentence, so a newer CLI never breaks the panel.
 - Every check and safety rule stays in SaveTether itself.
 
