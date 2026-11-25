@@ -84,6 +84,17 @@ export function wordFor(state: string, reason?: string): { word: string; shade: 
   }
 }
 
+/**
+ * The CLI ends a sentence with the command to type (SaveTether's cli-json.md, "Messages"). In Game Mode the
+ * desktop app is the way to fix it, so the sentence holding the command and any after it are dropped.
+ */
+export function withoutCliHint(detail: string): string {
+  const at = detail.indexOf("'savetether ");
+  if (at < 0) return detail;
+  const end = detail.lastIndexOf(". ", at);
+  return end < 0 ? "" : detail.slice(0, end + 1);
+}
+
 /** The app's ID is the part of the mapping ID before the dot; `names` maps it to the name from `app list`. */
 export function cardFor(mapping: MappingJson, names: Record<string, string> = {}): Card {
   const dot = mapping.mapping_id.indexOf(".");
@@ -95,7 +106,7 @@ export function cardFor(mapping: MappingJson, names: Record<string, string> = {}
     role: dot < 0 ? "" : mapping.mapping_id.slice(dot + 1),
     word,
     shade,
-    detail: mapping.detail,
+    detail: withoutCliHint(mapping.detail),
     bytes: mapping.bytes,
     files: mapping.files,
   };

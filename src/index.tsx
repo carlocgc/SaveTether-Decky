@@ -86,7 +86,7 @@ function LinkCard({ card }: { card: Card }) {
       <div style={{ fontSize: 11, color: MUTED, marginLeft: 15 }}>{sizeLine(card)}</div>
       {card.shade === "amber" && (
         <div style={{ fontSize: 11, color: BAR.amber, marginLeft: 15, lineHeight: 1.4 }}>
-          {card.detail} Open the desktop app to fix.
+          {card.detail && `${card.detail} `}Open the desktop app to fix.
         </div>
       )}
     </Focusable>
