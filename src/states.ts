@@ -134,9 +134,9 @@ export function overall(envelope: StatusEnvelope, names: Record<string, string> 
     // No "Not set up" row: the CLI reports a missing setup as `not-found`, the same problem as this device's
     // file missing from the sync folder, so the CLI's own sentence says which it is.
     if (envelope.problem === "schema-too-new") {
-      return { headline: "Update SaveTether", shade: "amber", detail: envelope.error };
+      return { headline: "Update SaveTether", shade: "amber", detail: withoutCliHint(envelope.error ?? "") };
     }
-    return { headline: "Cannot check this device", shade: "amber", detail: envelope.error ?? envelope.message };
+    return { headline: "Cannot check this device", shade: "amber", detail: withoutCliHint(envelope.error ?? envelope.message ?? "") };
   }
 
   if (status.journal_open) {

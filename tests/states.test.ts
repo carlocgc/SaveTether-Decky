@@ -130,7 +130,7 @@ test("a refused status shows the CLI's sentence", () => {
     problem: "not-found",
     error: "This device is not set up yet. Run 'savetether init --sync-root <path>' first.",
   };
-  assert.deepEqual(overall(notSetUp), { headline: "Cannot check this device", shade: "amber", detail: notSetUp.error });
+  assert.deepEqual(overall(notSetUp), { headline: "Cannot check this device", shade: "amber", detail: "This device is not set up yet." });
   assert.equal(overall({ ...notSetUp, problem: "schema-too-new" }).headline, "Update SaveTether");
   assert.deepEqual(cardsFor(notSetUp), []);
 });
