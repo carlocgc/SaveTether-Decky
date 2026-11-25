@@ -67,6 +67,7 @@ function LinkCard({ card }: { card: Card }) {
     // onActivate makes the card a focus target, so the controller can scroll through the list.
     <Focusable
       onActivate={() => {}}
+      focusClassName="st-focus"
       data-st-card={card.mappingId}
       data-st-state={card.word}
       data-st-name={card.appName}
@@ -113,6 +114,8 @@ function Content() {
 
   return (
     <>
+      {/* Cards do nothing when pressed, but the controller still moves over them: show where it is. */}
+      <style>{`.st-focus { background: #3d4450 !important; box-shadow: 0 0 0 2px #fff; }`}</style>
       <PanelSection>
         <PanelSectionRow>
           <OverviewBlock view={view} checking={checking} />
