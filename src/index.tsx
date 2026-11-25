@@ -11,6 +11,8 @@ const notifications = callable<[on?: boolean], BackendResult<{ notifications?: {
 
 /** Background checks, without sizes: sizes walk every shared folder. */
 const CHECK_EVERY_MS = 5 * 60_000;
+// At boot Decky loads plugins before Steam can show a toast: one at load was lost on the Deck (phase 4.1 T9).
+const FIRST_CHECK_AFTER_MS = 60_000;
 
 // The mockup's colours (docs/design/decky-mockup.html in SaveTether).
 const BAR: Record<Shade, string> = { green: "#59bf40", grey: "#67707b", amber: "#e8a23a" };
@@ -210,10 +212,12 @@ function Content() {
 
 export default definePlugin(() => {
   // Kept on window, not in the module: a hot reload loads a new module and may skip onDismount.
-  const w = window as { saveTetherTimer?: ReturnType<typeof setInterval> };
+  const w = window as { saveTetherTimer?: ReturnType<typeof setInterval>; saveTetherFirst?: ReturnType<typeof setTimeout> };
   clearInterval(w.saveTetherTimer);
+  clearTimeout(w.saveTetherFirst);
   w.saveTetherTimer = setInterval(backgroundCheck, CHECK_EVERY_MS);
-  backgroundCheck(); // at load: an amber setup toasts once after boot, as the desktop app at login
+  // Soon after load: an amber setup toasts once after boot, as the desktop app at login.
+  w.saveTetherFirst = setTimeout(backgroundCheck, FIRST_CHECK_AFTER_MS);
   return {
     name: "SaveTether",
     titleView: <div className={staticClasses.Title}>SaveTether</div>,
@@ -221,7 +225,8 @@ export default definePlugin(() => {
     icon: <FaLink />,
     onDismount() {
       clearInterval(w.saveTetherTimer);
-      w.saveTetherTimer = undefined;
+      clearTimeout(w.saveTetherFirst);
+      w.saveTetherTimer = w.saveTetherFirst = undefined;
     },
   };
 });
