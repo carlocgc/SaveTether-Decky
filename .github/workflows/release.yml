@@ -1,0 +1,96 @@
+name: Release
+
+# As in SaveTether: a tag vX.Y.Z on a commit in main publishes a release; a tag vX.Y.Z-<suffix>
+# (for example v0.2.0-beta1) publishes a prerelease from any branch. The zip installs through
+# Decky's manual install (Developer mode); the plugin is not in the Decky store.
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          # The job can write to the repo; keep the token out of git config, where package install scripts could read it.
+          persist-credentials: false
+
+      - name: Read and check the version
+        id: check
+        shell: bash
+        run: |
+          tag="$GITHUB_REF_NAME"
+          if [[ ! "$tag" =~ ^v([0-9]+\.[0-9]+\.[0-9]+)(-[0-9A-Za-z.-]+)?$ ]]; then
+            echo "::error::The tag must be vX.Y.Z or vX.Y.Z-suffix, but got '$tag'."
+            exit 1
+          fi
+          prerelease=false
+          [[ -n "${BASH_REMATCH[2]}" ]] && prerelease=true
+
+          # A full release must come from main, so what is published is what was merged there.
+          if [[ "$prerelease" == false ]]; then
+            git fetch --quiet origin main
+            if ! git merge-base --is-ancestor "$GITHUB_SHA" origin/main; then
+              echo "::error::$tag is not on main. Tag a commit on main, or use a prerelease tag such as $tag-beta1."
+              exit 1
+            fi
+          fi
+          {
+            echo "tag=$tag"
+            echo "version=${tag#v}"
+            echo "prerelease=$prerelease"
+          } >> "$GITHUB_OUTPUT"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      # Decky reads the plugin's version from package.json.
+      - name: Set the version
+        run: npm pkg set version="${{ steps.check.outputs.version }}"
+
+      - name: Install
+        run: corepack pnpm@9 install --frozen-lockfile
+
+      - name: Build
+        run: corepack pnpm@9 run build
+
+      - name: Test the frontend
+        run: corepack pnpm@9 test
+
+      - name: Test the backend
+        run: python3 -m unittest discover -s tests -v
+
+      - name: Package
+        env:
+          TAG: ${{ steps.check.outputs.tag }}
+        run: |
+          mkdir -p stage/SaveTether/dist out
+          cp dist/index.js stage/SaveTether/dist/
+          cp main.py plugin.json package.json LICENSE README.md stage/SaveTether/
+          (cd stage && zip -r "../out/savetether-decky-$TAG.zip" SaveTether)
+          cd out
+          sha256sum * > SHA256SUMS.txt
+          cat SHA256SUMS.txt
+          unzip -l "savetether-decky-$TAG.zip"
+
+      - name: Create the GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.check.outputs.tag }}
+          PRERELEASE: ${{ steps.check.outputs.prerelease }}
+        run: |
+          flags=(--repo "$GITHUB_REPOSITORY" --title "SaveTether-Decky $TAG" --generate-notes --verify-tag)
+          [[ "$PRERELEASE" == true ]] && flags+=(--prerelease)
+          gh release create "$TAG" out/* "${flags[@]}"

@@ -23,7 +23,12 @@ Releases tagged on `main` are stable; tags with a suffix (`v0.2.0-beta1`) are pr
 corepack pnpm@9 install
 corepack pnpm@9 run build    # dist/index.js
 corepack pnpm@9 test         # node --test, no extra dependencies
+python3 -m unittest discover -s tests   # the backend, with a fake CLI (Linux only)
 ```
+
+CI runs all three on every push and pull request. A tag `vX.Y.Z` (on `main`) or `vX.Y.Z-suffix` (any branch) runs `release.yml`, which publishes `savetether-decky-vX.Y.Z.zip` and `SHA256SUMS.txt` as a release or prerelease.
+
+For tests on the Deck only, the backend reads an optional `savetether_home` from `settings.json` in the plugin's Decky settings folder (`~/homebrew/settings/SaveTether`) and uses it as `SAVETETHER_HOME`. It is refused unless it lies under `~/sttest/`.
 
 The phase plan, the tasks and the test flow on the Deck are in SaveTether's repository: `docs/plans/phase-4-decky-plugin.md` and `docs/testing/hardware-testing.md`.
 
