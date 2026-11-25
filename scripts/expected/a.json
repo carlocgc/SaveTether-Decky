@@ -1,0 +1,7 @@
+{
+  "overall": { "shade": "green", "headline": "All linked" },
+  "cards": [
+    { "id": "dolphin.gc", "state": "Linked", "name": "Dolphin" },
+    { "id": "ppsspp.savedata", "state": "Linked", "name": "PPSSPP" }
+  ]
+}

@@ -1,0 +1,7 @@
+{
+  "overall": { "shade": "amber", "headline": "1 app needs attention" },
+  "cards": [
+    { "id": "ppsspp.savedata", "state": "Not linked", "name": "PPSSPP" },
+    { "id": "dolphin.gc", "state": "Linked", "name": "Dolphin" }
+  ]
+}
