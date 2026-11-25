@@ -29,7 +29,7 @@ def _env():
     # Only a throwaway home under ~/sttest, as in docs/testing/hardware-testing.md, so a stray
     # setting can never point the plugin at another real setup.
     scratch = os.path.realpath(os.path.join(decky.DECKY_USER_HOME, "sttest")) + os.sep
-    resolved = os.path.realpath(home)
+    resolved = os.path.realpath(home) if isinstance(home, str) else ""  # not a path: refused below
     if not resolved.startswith(scratch):
         decky.logger.warning("savetether_home %r is not under %s; refused", home, scratch)
         return None, {"ok": False, "exit_code": None, "error": "home-refused",
@@ -59,7 +59,7 @@ async def _run(*args):
             pass
         try:
             # A process stuck on a dead mount may not die at once; do not wait on it for long.
-            await asyncio.wait_for(proc.wait(), 5)
+            await asyncio.wait_for(proc.wait(), 1)
         except asyncio.TimeoutError:
             decky.logger.warning("savetether %s did not exit after kill", " ".join(args))
         return {"ok": False, "exit_code": None, "error": "timeout",

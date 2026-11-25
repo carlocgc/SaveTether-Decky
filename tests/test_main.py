@@ -92,7 +92,8 @@ class BackendTests(unittest.TestCase):
     def test_home_override_outside_sttest_is_refused(self):
         for path in [os.path.join(self.home, ".local", "share", "savetether"),
                      os.path.join(self.home, "sttest-other", "home"),  # a prefix, not a child
-                     os.path.join(self.home, "sttest", "..", "real")]:
+                     os.path.join(self.home, "sttest", "..", "real"),
+                     1]:  # not a path at all
             with self.subTest(path=path):
                 self.set_home(path)
                 r = self.run_call("status")
