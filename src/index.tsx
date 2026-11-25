@@ -74,7 +74,11 @@ function LinkCard({ card }: { card: Card }) {
     >
       <div style={row1}>
         <span style={dot(card.shade)} />
-        <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>{card.appName}</span>
+        <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>
+          {card.appName}
+          {/* An app can share several folders: the role tells its cards apart. */}
+          {card.role && <span style={{ color: MUTED }}> ({card.role})</span>}
+        </span>
         <span style={{ marginLeft: "auto", fontSize: 11, color: WORD[card.shade], textAlign: "right" }}>{card.word}</span>
       </div>
       <div style={{ fontSize: 11, color: MUTED, marginLeft: 15 }}>{sizeLine(card)}</div>
