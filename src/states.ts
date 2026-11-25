@@ -63,7 +63,7 @@ export function wordFor(state: string, reason?: string): { word: string; shade: 
     case "ok":
       return { word: "Linked", shade: "green" };
     case "not-applied":
-      if (reason === "no-save-folder") return { word: "Not on this device", shade: "grey" };
+      if (reason === "no-save-folder") return { word: "Not set up here", shade: "grey" };
       if (reason === "save-folder-not-absolute") return { word: "Device file error", shade: "amber" };
       return { word: "Ready to link", shade: "grey" };
     case "replaced":
@@ -150,7 +150,7 @@ export function overall(envelope: StatusEnvelope, names: Record<string, string> 
     return { headline: apps === 1 ? "1 app needs attention" : `${apps} apps need attention`, shade: "amber" };
   }
 
-  // "All linked" only when it is so: folders here not linked yet are counted; "Not on this device" is not.
+  // "All linked" only when it is so: folders here not linked yet are counted; "Not set up here" is not.
   const ready = status.mappings.filter((m) => m.state === "not-applied" && m.reason !== "no-save-folder").length;
   if (ready === 0) {
     return { headline: "All linked", shade: "green" };

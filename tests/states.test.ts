@@ -41,7 +41,7 @@ const envelope = (status: Partial<StatusJson>, rest: Partial<StatusEnvelope> = {
 test("every state and reason has the desktop app's word and shade", () => {
   const rows: [string, string | undefined, string, string][] = [
     ["ok", undefined, "Linked", "green"],
-    ["not-applied", "no-save-folder", "Not on this device", "grey"],
+    ["not-applied", "no-save-folder", "Not set up here", "grey"],
     ["not-applied", "save-folder-not-absolute", "Device file error", "amber"],
     ["not-applied", "not-linked-yet", "Ready to link", "grey"],
     ["replaced", "folder-holds-files", "Not linked", "amber"],
