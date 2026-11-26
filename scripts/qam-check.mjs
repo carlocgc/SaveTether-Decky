@@ -7,7 +7,7 @@
 //
 //   node scripts/qam-check.mjs --expect scripts/expected/a.json [--shot a.png] [--port 8081]
 //   node scripts/qam-check.mjs --status status.json [--shot f.png]   (the real setup: `savetether status --json`)
-//   node scripts/qam-check.mjs --expect scripts/expected/j-mute.json --mute on   (sets Mute before Check now)
+//   node scripts/qam-check.mjs --expect scripts/expected/j-mute.json --mute on   (turns the Notifications toggle off, muting, before Check now)
 //   node scripts/qam-check.mjs --expect <file> --conflicts on   (sets "Detect sync conflicts" before Check now)
 //   node scripts/qam-check.mjs --expect scripts/expected/k.json --listen 400     (QAM closed: waits for a background toast)
 //
@@ -156,13 +156,13 @@ await until("the SaveTether panel", () => qam.evaluate(`!!document.querySelector
 const findButton = `[...document.querySelectorAll("div, button")].filter((e) => /^(Check now|Checking…)$/.test(e.textContent.trim())).pop()`;
 await until("the panel's first check to finish", () => qam.evaluate(`${findButton}?.textContent.trim() === "Check now"`), CHECK_LIMIT_MS);
 
-// Mute: clicks Steam's toggle inside the row the plugin marks, then waits for the row to show the click. The
+// Mute (the Notifications toggle, off): clicks Steam's toggle inside the row the plugin marks, then waits for the row to show the click. The
 // panel shows it before the CLI has written it, so a run's `muted` is checked on the next run's opening check.
 if (args.mute) {
   const want = String(args.mute === "on");
   const clicked = await qam.evaluate(`(() => {
     const row = document.querySelector("[data-st-muted]");
-    if (!row) return "no Mute notifications toggle on the panel (an older CLI?)";
+    if (!row) return "no Notifications toggle on the panel (an older CLI?)";
     if (row.dataset.stMuted === ${JSON.stringify(want)}) return "";
     const t = row.querySelector('[class*="Toggle"]') ?? row.querySelector('[role="checkbox"], [tabindex]') ?? row;
     t.click();
