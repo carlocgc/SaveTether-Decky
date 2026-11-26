@@ -17,6 +17,8 @@ export interface MappingJson {
   files?: number;
   /** The app's name typed when the mapping was added by hand (CLI 2026-11-26); absent otherwise and from an older CLI. */
   name?: string;
+  /** For `file-conflict`: the sync tool's conflict copies, relative to the shared folder (CLI 2026-11-26); absent otherwise. */
+  conflicts?: string[];
 }
 
 export interface StatusJson {
@@ -83,6 +85,8 @@ export function wordFor(state: string, reason?: string): { word: string; shade: 
       return { word: "Two shared copies", shade: "amber" };
     case "foreign-link":
       return { word: "Not SaveTether's link", shade: "amber" };
+    case "file-conflict":
+      return { word: "File conflict", shade: "amber" };
     default:
       return { word: "Needs attention", shade: "amber" };
   }

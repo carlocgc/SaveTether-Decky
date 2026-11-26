@@ -8,6 +8,8 @@
 #   deck-scenarios.sh toasts       build home t, five apps linked, for the toast scenarios (g) to (l)
 #   deck-scenarios.sh break <id>   in home t, replace that app's link by a folder holding a file
 #   deck-scenarios.sh fix <id>     in home t, put that link back
+#   deck-scenarios.sh conflict <id>  in home t, leave a Syncthing conflict copy in that app's shared folder
+#   deck-scenarios.sh resolve <id>   in home t, delete it again
 #   deck-scenarios.sh use <a|b|c|d|s|t> point the plugin at that home (its settings.json)
 #   deck-scenarios.sh real         point the plugin back at the real setup (removes settings.json)
 #   deck-scenarios.sh cleanup      the same, unmount d, and remove ~/sttest/decky
@@ -114,6 +116,12 @@ fix_link() {
   rm -rf "$src" && mv "$src.st-link" "$src"
 }
 
+# A conflict copy as Syncthing names it, in the shared folder of one of home t's apps.
+conflict_copy() {
+  saves_of "${1:-}" > /dev/null || exit 1
+  echo "$root/t/sync/savetether/${1/./\/}/save.sync-conflict-20261126-101500-DECK.bin"
+}
+
 use() {
   case "${1:-}" in a|b|c|d|s|t) ;; *) echo "use a, b, c, d, s or t" >&2; exit 1;; esac
   mkdir -p "$(dirname "$settings")"
@@ -134,8 +142,10 @@ case "${1:-}" in
   toasts) toasts ;;
   break) break_link "${2:-}" ;;
   fix) fix_link "${2:-}" ;;
+  conflict) f=$(conflict_copy "${2:-}") && echo theirs > "$f" ;;
+  resolve) f=$(conflict_copy "${2:-}") && rm "$f" ;;
   use) use "${2:-}" ;;
   real) real ;;
   cleanup) cleanup ;;
-  *) sed -n '5,13p' "$0"; exit 1 ;;
+  *) sed -n '5,15p' "$0"; exit 1 ;;
 esac

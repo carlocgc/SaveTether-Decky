@@ -20,7 +20,7 @@
 
 ## What it is
 
-A [Decky Loader](https://wiki.deckbrew.xyz/) plugin for [SaveTether](https://github.com/carlocgc/SaveTether), which links game save folders into a synced folder so several devices share one copy. The plugin shows, in Game Mode, whether those links are intact. It only reads, apart from the device's notifications switch: setting links up and fixing them stays in SaveTether's desktop app in Desktop Mode.
+A [Decky Loader](https://wiki.deckbrew.xyz/) plugin for [SaveTether](https://github.com/carlocgc/SaveTether), which links game save folders into a synced folder so several devices share one copy. The plugin shows, in Game Mode, whether those links are intact. It only reads, apart from two of the device's switches (notifications, and detecting sync conflicts): setting links up and fixing them stays in SaveTether's desktop app in Desktop Mode.
 
 ## Features
 
@@ -30,6 +30,7 @@ A [Decky Loader](https://wiki.deckbrew.xyz/) plugin for [SaveTether](https://git
 - Check now, and a check each time the panel opens.
 - A Steam toast when a link newly needs attention, with the desktop app's rules: each problem once, nothing while another SaveTether process is changing links, "Health check failed" after three failed checks. A background check runs a minute after the plugin loads and then every 5 minutes (without sizes, so no folder walk). Steam's "Show Notification Toasts" setting applies.
 - Mute notifications: the device's notifications switch, shared with the desktop app. Hidden with a CLI older than 0.7.0-beta2.
+- Detect sync conflicts: the device's switch, shared with the desktop app, off by default. On, a link whose shared folder holds conflict copies left by Syncthing, Dropbox, Nextcloud or ownCloud shows **File conflict** (amber, with a toast). Hidden with a CLI that has no `sync-conflicts` command.
 - A sync folder that stops answering (a dead network or overlay mount) cannot freeze the panel: every call has a 20 s timeout.
 - Controller navigation: every card takes focus, so the list scrolls.
 
@@ -46,7 +47,7 @@ Releases tagged on `main` are stable; tags with a suffix (`v0.2.0-beta1`) are pr
 
 ## How it works
 
-- **Backend** (`main.py`): runs `savetether status --json --sizes` and `savetether app list --json` (and can read or set `savetether notifications`) as the `deck` user, and passes the JSON through untouched. It retries without `--sizes` for CLIs older than 0.7.0, and kills the CLI's whole process group on timeout.
+- **Backend** (`main.py`): runs `savetether status --json --sizes` and `savetether app list --json` (and can read or set `savetether notifications` and `savetether sync-conflicts`) as the `deck` user, and passes the JSON through untouched. It retries without `--sizes` for CLIs older than 0.7.0, and kills the CLI's whole process group on timeout.
 - **Frontend** (`src/`): React with `@decky/ui`. `monitor.ts` decides when to toast. `states.ts` maps SaveTether's [JSON contract](https://github.com/carlocgc/SaveTether/blob/main/docs/cli-json.md) to the words and colours SaveTether's desktop app uses; states it does not know show amber with the CLI's sentence, so a newer CLI never breaks the panel.
 - Every check and safety rule stays in SaveTether itself.
 

@@ -54,10 +54,19 @@ test("every state and reason has the desktop app's word and shade", () => {
     ["retargeted", undefined, "Linked elsewhere", "amber"],
     ["double-seed", undefined, "Two shared copies", "amber"],
     ["foreign-link", undefined, "Not SaveTether's link", "amber"],
+    ["file-conflict", undefined, "File conflict", "amber"],
   ];
   for (const [state, reason, word, shade] of rows) {
     assert.deepEqual(wordFor(state, reason), { word, shade }, `${state}/${reason}`);
   }
+});
+
+test("a file conflict is an app needing attention, and its card keeps the CLI's sentence naming the copy", () => {
+  const detail = "The sync tool left a conflict copy in the shared folder, 'save.sync-conflict-20261126-101500-ABC.dat'. Keep the right one and delete the other.";
+  const conflict = mapping("cemu.save", "file-conflict", undefined, { detail, conflicts: ["save.sync-conflict-20261126-101500-ABC.dat"] });
+  assert.deepEqual(overall(envelope({ mappings: [conflict, mapping("eden.save", "ok")] })), { headline: "1 app needs attention", shade: "amber" });
+  assert.equal(cardFor(conflict).detail, detail);
+  assert.equal(cardFor(conflict).word, "File conflict");
 });
 
 test("a state a newer CLI adds shows amber instead of failing", () => {
