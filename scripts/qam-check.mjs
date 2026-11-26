@@ -7,11 +7,12 @@
 //
 //   node scripts/qam-check.mjs --expect scripts/expected/a.json [--shot a.png] [--port 8081]
 //   node scripts/qam-check.mjs --status status.json [--shot f.png]   (the real setup: `savetether status --json`)
-//   node scripts/qam-check.mjs --expect scripts/expected/j-mute.json --mute on   (sets Mute before Check now)
+//   node scripts/qam-check.mjs --expect scripts/expected/j-mute.json --mute on   (turns the Notifications toggle off, muting, before Check now)
+//   node scripts/qam-check.mjs --expect <file> --conflicts on   (sets "Detect sync conflicts" before Check now)
 //   node scripts/qam-check.mjs --expect scripts/expected/k.json --listen 400     (QAM closed: waits for a background toast)
 //
 // Toasts (phase 4.1 T8): the plugin logs "[SaveTether] toast…" lines in SharedJSContext; those logged from the
-// start of the run are `toasts`. An expected file is compared on its own keys only (overall, cards, muted, toasts).
+// start of the run are `toasts`. An expected file is compared on its own keys only (overall, cards, muted, conflicts, toasts).
 //
 // Exit 0: the panel matches. 1: it does not (both printed). 2: the harness could not run.
 import { readFileSync, writeFileSync } from "node:fs";
@@ -24,6 +25,7 @@ const { values: args } = parseArgs({
     shot: { type: "string" },
     port: { type: "string", default: "8081" },
     mute: { type: "string" },
+    conflicts: { type: "string" },
     listen: { type: "string" },
   },
 });
@@ -154,13 +156,13 @@ await until("the SaveTether panel", () => qam.evaluate(`!!document.querySelector
 const findButton = `[...document.querySelectorAll("div, button")].filter((e) => /^(Check now|Checking…)$/.test(e.textContent.trim())).pop()`;
 await until("the panel's first check to finish", () => qam.evaluate(`${findButton}?.textContent.trim() === "Check now"`), CHECK_LIMIT_MS);
 
-// Mute: clicks Steam's toggle inside the row the plugin marks, then waits for the row to show the click. The
+// Mute (the Notifications toggle, off): clicks Steam's toggle inside the row the plugin marks, then waits for the row to show the click. The
 // panel shows it before the CLI has written it, so a run's `muted` is checked on the next run's opening check.
 if (args.mute) {
   const want = String(args.mute === "on");
   const clicked = await qam.evaluate(`(() => {
     const row = document.querySelector("[data-st-muted]");
-    if (!row) return "no Mute notifications toggle on the panel (an older CLI?)";
+    if (!row) return "no Notifications toggle on the panel (an older CLI?)";
     if (row.dataset.stMuted === ${JSON.stringify(want)}) return "";
     const t = row.querySelector('[class*="Toggle"]') ?? row.querySelector('[role="checkbox"], [tabindex]') ?? row;
     t.click();
@@ -168,6 +170,22 @@ if (args.mute) {
   })()`);
   if (clicked) fail(clicked);
   await until(`Mute to read ${args.mute}`, () => qam.evaluate(`document.querySelector("[data-st-muted]")?.dataset.stMuted === ${JSON.stringify(want)}`), CHECK_LIMIT_MS);
+}
+
+// "Detect sync conflicts", the same way as Mute. A saved change runs a check of its own: wait for it to end too.
+if (args.conflicts) {
+  const want = String(args.conflicts === "on");
+  const clicked = await qam.evaluate(`(() => {
+    const row = document.querySelector("[data-st-conflicts]");
+    if (!row) return "no Detect sync conflicts toggle on the panel (an older CLI?)";
+    if (row.dataset.stConflicts === ${JSON.stringify(want)}) return "";
+    const t = row.querySelector('[class*="Toggle"]') ?? row.querySelector('[role="checkbox"], [tabindex]') ?? row;
+    t.click();
+    return "";
+  })()`);
+  if (clicked) fail(clicked);
+  await until(`Detect sync conflicts to read ${args.conflicts}`, () => qam.evaluate(`document.querySelector("[data-st-conflicts]")?.dataset.stConflicts === ${JSON.stringify(want)}`), CHECK_LIMIT_MS);
+  await until("the check after the switch to finish", () => qam.evaluate(`${findButton}?.textContent.trim() === "Check now"`), CHECK_LIMIT_MS);
 }
 
 const pressedAt = Date.now();
@@ -193,14 +211,16 @@ await until("the press to start a check", () => qam.evaluate(`window.__stSawChec
 await until("the check to finish", () => qam.evaluate(`${findButton}?.textContent.trim() === "Check now"`), CHECK_LIMIT_MS);
 const checkMs = Date.now() - pressedAt;
 
-// 4. What the panel shows. `muted` is null when the toggle is hidden.
+// 4. What the panel shows. `muted` and `conflicts` are null when their toggle is hidden.
 const shown = await qam.evaluate(`(() => {
   const o = document.querySelector("[data-st-overall]");
   const m = document.querySelector("[data-st-muted]");
+  const c = document.querySelector("[data-st-conflicts]");
   return {
     overall: { shade: o.dataset.stOverall, headline: o.textContent.trim() },
     cards: [...document.querySelectorAll("[data-st-card]")].map((c) => ({ id: c.dataset.stCard, state: c.dataset.stState, name: c.dataset.stName })),
     muted: m ? m.dataset.stMuted === "true" : null,
+    conflicts: c ? c.dataset.stConflicts === "true" : null,
   };
 })()`);
 

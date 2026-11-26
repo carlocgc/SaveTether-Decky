@@ -88,6 +88,11 @@ class Plugin:
         value = [] if on is None else ["on" if on else "off"]
         return await _run("notifications", *value, "--json")
 
+    async def sync_conflicts(self, on: bool | None = None):
+        """Reads the device's "Detect sync conflicts" switch, or sets it. A CLI without the command exits 64."""
+        value = [] if on is None else ["on" if on else "off"]
+        return await _run("sync-conflicts", *value, "--json")
+
     async def _main(self):
         decky.logger.info("SaveTether plugin loaded")
 

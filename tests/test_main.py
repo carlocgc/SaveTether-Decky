@@ -73,6 +73,18 @@ class BackendTests(unittest.TestCase):
         r = self.run_call("notifications")
         self.assertEqual((r["ok"], r["exit_code"]), (True, 64))
 
+    def test_sync_conflicts_reads_and_sets(self):
+        for args, expected in [((), "sync-conflicts --json"),
+                               ((True,), "sync-conflicts on --json"),
+                               ((False,), "sync-conflicts off --json")]:
+            with self.subTest(args=args):
+                self.assertEqual(self.run_call("sync_conflicts", *args)["json"]["args"], expected)
+
+    def test_sync_conflicts_on_an_older_cli_passes_exit_64_through(self):
+        os.environ["FAKE_CLI_MODE"] = "nocommand"
+        r = self.run_call("sync_conflicts")
+        self.assertEqual((r["ok"], r["exit_code"]), (True, 64))
+
     def test_apps(self):
         r = self.run_call("apps")
         self.assertEqual(r["json"]["args"], "app list --json")

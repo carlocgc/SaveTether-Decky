@@ -15,6 +15,10 @@ export interface MappingJson {
   detail: string;
   bytes?: number;
   files?: number;
+  /** The app's name typed when the mapping was added by hand (CLI 2026-11-26); absent otherwise and from an older CLI. */
+  name?: string;
+  /** For `file-conflict`: the sync tool's conflict copies, relative to the shared folder (CLI 2026-11-26); absent otherwise. */
+  conflicts?: string[];
 }
 
 export interface StatusJson {
@@ -81,6 +85,8 @@ export function wordFor(state: string, reason?: string): { word: string; shade: 
       return { word: "Two shared copies", shade: "amber" };
     case "foreign-link":
       return { word: "Not SaveTether's link", shade: "amber" };
+    case "file-conflict":
+      return { word: "File conflict", shade: "amber" };
     default:
       return { word: "Needs attention", shade: "amber" };
   }
@@ -97,14 +103,38 @@ export function withoutCliHint(detail: string): string {
   return end < 0 ? "" : detail.slice(0, end + 1);
 }
 
-/** The app's ID is the part of the mapping ID before the dot; `names` maps it to the name from `app list`. */
+// Object.hasOwn needs ES2022; this targets ES2020.
+const has = (o: object, key: string): boolean => Object.prototype.hasOwnProperty.call(o, key);
+
+function appIdOf(mappingId: string): string {
+  const dot = mappingId.indexOf(".");
+  return dot < 0 ? mappingId : mappingId.slice(0, dot);
+}
+
+/**
+ * As AppNames.cs: an app's definition name (`names`, from `app list`) first, then the name typed for an app added
+ * by hand, from the first of its mappings that has one in ID order, so all its folders show under one name.
+ */
+export function withTypedNames(mappings: MappingJson[], names: Record<string, string>): Record<string, string> {
+  const all = { ...names };
+  for (const m of [...mappings].sort((a, b) => (a.mapping_id < b.mapping_id ? -1 : a.mapping_id > b.mapping_id ? 1 : 0))) {
+    const appId = appIdOf(m.mapping_id);
+    if (m.name && !has(all, appId)) all[appId] = m.name;
+  }
+  return all;
+}
+
+/**
+ * The app's ID is the part of the mapping ID before the dot; `names` maps it to the name from `app list`.
+ * Own keys only: a plain object also answers `constructor` and `toString`, which are valid app IDs.
+ */
 export function cardFor(mapping: MappingJson, names: Record<string, string> = {}): Card {
   const dot = mapping.mapping_id.indexOf(".");
-  const appId = dot < 0 ? mapping.mapping_id : mapping.mapping_id.slice(0, dot);
+  const appId = appIdOf(mapping.mapping_id);
   const { word, shade } = wordFor(mapping.state, mapping.reason);
   return {
     mappingId: mapping.mapping_id,
-    appName: names[appId] ?? appId,
+    appName: (has(names, appId) ? names[appId] : undefined) ?? mapping.name ?? appId,
     role: dot < 0 ? "" : mapping.mapping_id.slice(dot + 1),
     word,
     shade,
@@ -126,7 +156,9 @@ export function sortCards(cards: Card[]): Card[] {
 }
 
 export function cardsFor(envelope: StatusEnvelope, names: Record<string, string> = {}): Card[] {
-  return sortCards((envelope.status?.mappings ?? []).map((m) => cardFor(m, names)));
+  const mappings = envelope.status?.mappings ?? [];
+  const all = withTypedNames(mappings, names);
+  return sortCards(mappings.map((m) => cardFor(m, all)));
 }
 
 /** The overall state, first match wins, in OverallState.cs's order. */
@@ -157,7 +189,8 @@ export function overall(envelope: StatusEnvelope, names: Record<string, string> 
     return { headline: "Device name used by another install", shade: "amber" };
   }
 
-  const cards = status.mappings.map((m) => cardFor(m, names));
+  const all = withTypedNames(status.mappings, names);
+  const cards = status.mappings.map((m) => cardFor(m, all));
   const apps = new Set(cards.filter((c) => c.shade === "amber").map((c) => c.appName)).size;
   if (apps > 0) {
     return { headline: apps === 1 ? "1 app needs attention" : `${apps} apps need attention`, shade: "amber" };

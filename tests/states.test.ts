@@ -54,10 +54,19 @@ test("every state and reason has the desktop app's word and shade", () => {
     ["retargeted", undefined, "Linked elsewhere", "amber"],
     ["double-seed", undefined, "Two shared copies", "amber"],
     ["foreign-link", undefined, "Not SaveTether's link", "amber"],
+    ["file-conflict", undefined, "File conflict", "amber"],
   ];
   for (const [state, reason, word, shade] of rows) {
     assert.deepEqual(wordFor(state, reason), { word, shade }, `${state}/${reason}`);
   }
+});
+
+test("a file conflict is an app needing attention, and its card keeps the CLI's sentence naming the copy", () => {
+  const detail = "The sync tool left a conflict copy in the shared folder, 'save.sync-conflict-20261126-101500-ABC.dat'. Keep the right one and delete the other.";
+  const conflict = mapping("cemu.save", "file-conflict", undefined, { detail, conflicts: ["save.sync-conflict-20261126-101500-ABC.dat"] });
+  assert.deepEqual(overall(envelope({ mappings: [conflict, mapping("eden.save", "ok")] })), { headline: "1 app needs attention", shade: "amber" });
+  assert.equal(cardFor(conflict).detail, detail);
+  assert.equal(cardFor(conflict).word, "File conflict");
 });
 
 test("a state a newer CLI adds shows amber instead of failing", () => {
@@ -71,6 +80,33 @@ test("the card takes the app name from app list, or the ID before the dot", () =
   assert.equal(sizeLine(card), "2.0 KiB · 3 files");
   assert.equal(cardFor(mapping("dolphin.gc", "ok")).appName, "dolphin");
   assert.equal(sizeLine(cardFor(mapping("dolphin.gc", "ok"))), "size unknown");
+});
+
+test("an app added by hand shows the name typed for it, under app list's name, on all its folders", () => {
+  assert.equal(cardFor(mapping("lantern-harbor.saves", "ok", undefined, { name: "Lantern Harbor" })).appName, "Lantern Harbor");
+  const cards = cardsFor(envelope({
+    mappings: [
+      mapping("lantern-harbor.config", "ok"),
+      mapping("lantern-harbor.saves", "ok", undefined, { name: "Lantern Harbor" }),
+      mapping("cemu.extra", "ok", undefined, { name: "Typed Cemu" }),
+    ],
+  }), { cemu: "Cemu" });
+  assert.deepEqual(cards.map((c) => `${c.mappingId}=${c.appName}`),
+    ["cemu.extra=Cemu", "lantern-harbor.config=Lantern Harbor", "lantern-harbor.saves=Lantern Harbor"]);
+  const amber = envelope({ mappings: [
+    mapping("lantern-harbor.config", "broken", "shared-folder-missing"),
+    mapping("lantern-harbor.saves", "broken", "shared-folder-missing", { name: "Lantern Harbor" }),
+  ] });
+  assert.equal(overall(amber).headline, "1 app needs attention");
+});
+
+test("an app whose ID is a built-in object key keeps its own name, and the panel still sorts", () => {
+  const cards = cardsFor(envelope({ mappings: [
+    mapping("constructor.saves", "ok", undefined, { name: "Constructor" }),
+    mapping("tostring.saves", "ok"),
+    mapping("valueOf.saves", "ok"),
+  ] }));
+  assert.deepEqual(cards.map((c) => c.appName), ["Constructor", "tostring", "valueOf"]);
 });
 
 test("a card drops the CLI's command hint, since Game Mode has no terminal", () => {
