@@ -74,19 +74,19 @@ test("the card takes the app name from app list, or the ID before the dot", () =
 });
 
 test("an app added by hand shows the name typed for it, under app list's name, on all its folders", () => {
-  assert.equal(cardFor(mapping("dohna-dohna.saves", "ok", undefined, { name: "Dohna Dohna" })).appName, "Dohna Dohna");
+  assert.equal(cardFor(mapping("lantern-harbor.saves", "ok", undefined, { name: "Lantern Harbor" })).appName, "Lantern Harbor");
   const cards = cardsFor(envelope({
     mappings: [
-      mapping("dohna-dohna.config", "ok"),
-      mapping("dohna-dohna.saves", "ok", undefined, { name: "Dohna Dohna" }),
+      mapping("lantern-harbor.config", "ok"),
+      mapping("lantern-harbor.saves", "ok", undefined, { name: "Lantern Harbor" }),
       mapping("cemu.extra", "ok", undefined, { name: "Typed Cemu" }),
     ],
   }), { cemu: "Cemu" });
   assert.deepEqual(cards.map((c) => `${c.mappingId}=${c.appName}`),
-    ["cemu.extra=Cemu", "dohna-dohna.config=Dohna Dohna", "dohna-dohna.saves=Dohna Dohna"]);
+    ["cemu.extra=Cemu", "lantern-harbor.config=Lantern Harbor", "lantern-harbor.saves=Lantern Harbor"]);
   const amber = envelope({ mappings: [
-    mapping("dohna-dohna.config", "broken", "shared-folder-missing"),
-    mapping("dohna-dohna.saves", "broken", "shared-folder-missing", { name: "Dohna Dohna" }),
+    mapping("lantern-harbor.config", "broken", "shared-folder-missing"),
+    mapping("lantern-harbor.saves", "broken", "shared-folder-missing", { name: "Lantern Harbor" }),
   ] });
   assert.equal(overall(amber).headline, "1 app needs attention");
 });
