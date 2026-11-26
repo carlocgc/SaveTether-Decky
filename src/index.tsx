@@ -36,7 +36,7 @@ interface View {
   conflictCheck?: boolean;
 }
 
-/** The switch as Mute shows it, from a `notifications` result; undefined for an older CLI (exit 64) or a failure. */
+/** The notifications switch, inverted (true: muted), from a `notifications` result; undefined for an older CLI (exit 64) or a failure. */
 function mutedFrom(n: Awaited<ReturnType<typeof notifications>>): boolean | undefined {
   return n.ok && typeof n.json.notifications?.on === "boolean" ? !n.json.notifications.on : undefined;
 }
@@ -213,8 +213,14 @@ function Content() {
         </PanelSectionRow>
         {view?.muted !== undefined && (
           <PanelSectionRow>
+            {/* On means notify, as the desktop app's switch; `muted` stays the inverse for the gate and the harness. */}
             <div data-st-muted={String(view.muted)}>
-              <ToggleField label="Mute notifications" checked={view.muted} onChange={(m) => void setMute(m)} />
+              <ToggleField
+                label="Notifications"
+                description="A toast when a link needs attention."
+                checked={!view.muted}
+                onChange={(on) => void setMute(!on)}
+              />
             </div>
           </PanelSectionRow>
         )}

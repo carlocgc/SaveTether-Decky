@@ -29,7 +29,7 @@ A [Decky Loader](https://wiki.deckbrew.xyz/) plugin for [SaveTether](https://git
 - Links needing attention sorted first, with SaveTether's own explanation.
 - Check now, and a check each time the panel opens.
 - A Steam toast when a link newly needs attention, with the desktop app's rules: each problem once, nothing while another SaveTether process is changing links, "Health check failed" after three failed checks. A background check runs a minute after the plugin loads and then every 5 minutes (without sizes, so no folder walk). Steam's "Show Notification Toasts" setting applies.
-- Mute notifications: the device's notifications switch, shared with the desktop app. Hidden with a CLI older than 0.7.0-beta2.
+- Notifications: the device's notifications switch, shared with the desktop app, which calls it "Desktop notifications"; on by default, off mutes the toasts. Hidden with a CLI older than 0.7.0-beta2.
 - Detect sync conflicts: the device's switch, shared with the desktop app, off by default. On, a link whose shared folder holds conflict copies left by Syncthing, Dropbox, Nextcloud or ownCloud shows **File conflict** (amber, with a toast). Hidden with a CLI that has no `sync-conflicts` command.
 - A sync folder that stops answering (a dead network or overlay mount) cannot freeze the panel: every call has a 20 s timeout.
 - Controller navigation: every card takes focus, so the list scrolls.
