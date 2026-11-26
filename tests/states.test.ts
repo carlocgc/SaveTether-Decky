@@ -73,6 +73,33 @@ test("the card takes the app name from app list, or the ID before the dot", () =
   assert.equal(sizeLine(cardFor(mapping("dolphin.gc", "ok"))), "size unknown");
 });
 
+test("an app added by hand shows the name typed for it, under app list's name, on all its folders", () => {
+  assert.equal(cardFor(mapping("lantern-harbor.saves", "ok", undefined, { name: "Lantern Harbor" })).appName, "Lantern Harbor");
+  const cards = cardsFor(envelope({
+    mappings: [
+      mapping("lantern-harbor.config", "ok"),
+      mapping("lantern-harbor.saves", "ok", undefined, { name: "Lantern Harbor" }),
+      mapping("cemu.extra", "ok", undefined, { name: "Typed Cemu" }),
+    ],
+  }), { cemu: "Cemu" });
+  assert.deepEqual(cards.map((c) => `${c.mappingId}=${c.appName}`),
+    ["cemu.extra=Cemu", "lantern-harbor.config=Lantern Harbor", "lantern-harbor.saves=Lantern Harbor"]);
+  const amber = envelope({ mappings: [
+    mapping("lantern-harbor.config", "broken", "shared-folder-missing"),
+    mapping("lantern-harbor.saves", "broken", "shared-folder-missing", { name: "Lantern Harbor" }),
+  ] });
+  assert.equal(overall(amber).headline, "1 app needs attention");
+});
+
+test("an app whose ID is a built-in object key keeps its own name, and the panel still sorts", () => {
+  const cards = cardsFor(envelope({ mappings: [
+    mapping("constructor.saves", "ok", undefined, { name: "Constructor" }),
+    mapping("tostring.saves", "ok"),
+    mapping("valueOf.saves", "ok"),
+  ] }));
+  assert.deepEqual(cards.map((c) => c.appName), ["Constructor", "tostring", "valueOf"]);
+});
+
 test("a card drops the CLI's command hint, since Game Mode has no terminal", () => {
   const detail = "The save folder holds files again. Run 'savetether apply ppsspp.savedata'.";
   assert.equal(cardFor(mapping("ppsspp.savedata", "replaced", "folder-holds-files", { detail })).detail,
