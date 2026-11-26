@@ -8,6 +8,7 @@ import { cardsFor, failureOverall, overall, sizeLine, type BackendResult, type C
 const status = callable<[sizes: boolean], BackendResult<StatusEnvelope>>("status");
 const apps = callable<[], BackendResult<{ apps?: { id: string; name?: string }[] }>>("apps");
 const notifications = callable<[on?: boolean], BackendResult<{ notifications?: { on?: boolean } }>>("notifications");
+const syncConflicts = callable<[on?: boolean], BackendResult<{ sync_conflicts?: { on?: boolean } }>>("sync_conflicts");
 
 /** Background checks, without sizes: sizes walk every shared folder. */
 const CHECK_EVERY_MS = 5 * 60_000;
@@ -31,11 +32,18 @@ interface View {
   checkedAt: string;
   /** The device's notifications switch, inverted; undefined when the CLI has no `notifications` command. */
   muted?: boolean;
+  /** The device's "Detect sync conflicts" switch; undefined when the CLI has no `sync-conflicts` command. */
+  conflictCheck?: boolean;
 }
 
 /** The switch as Mute shows it, from a `notifications` result; undefined for an older CLI (exit 64) or a failure. */
 function mutedFrom(n: Awaited<ReturnType<typeof notifications>>): boolean | undefined {
   return n.ok && typeof n.json.notifications?.on === "boolean" ? !n.json.notifications.on : undefined;
+}
+
+/** The "Detect sync conflicts" switch, from a `sync-conflicts` result; undefined for an older CLI (exit 64) or a failure. */
+function conflictCheckFrom(c: Awaited<ReturnType<typeof syncConflicts>>): boolean | undefined {
+  return c.ok && typeof c.json.sync_conflicts?.on === "boolean" ? c.json.sync_conflicts.on : undefined;
 }
 
 // One monitor for the panel's checks and the background ones, as the desktop app counts both.
@@ -59,15 +67,16 @@ function notify(body: string, muted: boolean) {
 }
 
 async function check(sizes: boolean): Promise<View> {
-  const [s, a, n] = await Promise.all([status(sizes), apps(), notifications()]);
+  const [s, a, n, c] = await Promise.all([status(sizes), apps(), notifications(), syncConflicts()]);
   const names: Record<string, string> = {};
   // Names are a nicety: without them a card shows the app's ID.
   if (a.ok) for (const app of a.json.apps ?? []) if (app.name) names[app.id] = app.name;
   const muted = mutedFrom(n);
+  const conflictCheck = conflictCheckFrom(c);
   const body = monitor.accept(s, names);
   if (body) notify(body, muted === true); // an older CLI has no switch: on, as the desktop's default
   const checkedAt = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: false });
-  if (!s.ok) return { overall: failureOverall(s), cards: [], checkedAt, muted };
+  if (!s.ok) return { overall: failureOverall(s), cards: [], checkedAt, muted, conflictCheck };
   return {
     overall: overall(s.json, names),
     cards: cardsFor(s.json, names),
@@ -75,6 +84,7 @@ async function check(sizes: boolean): Promise<View> {
     syncRoot: s.json.status?.sync_root,
     checkedAt,
     muted,
+    conflictCheck,
   };
 }
 
@@ -170,6 +180,16 @@ function Content() {
     setView((v) => v && { ...v, muted: now ?? !muted });
   };
 
+  const setConflictCheck = async (on: boolean) => {
+    if (!view) return;
+    setView({ ...view, conflictCheck: on });
+    const c = await syncConflicts(on).catch(() => undefined);
+    // As Mute: on a failed write the old value comes back. On a saved change, check at once so the cards show it.
+    const now = c ? conflictCheckFrom(c) : undefined;
+    setView((v) => v && { ...v, conflictCheck: now ?? !on });
+    if (now === on) await run();
+  };
+
   // Checks when the panel opens and on Check now; the background checks run from definePlugin.
   useEffect(() => {
     void run();
@@ -195,6 +215,18 @@ function Content() {
           <PanelSectionRow>
             <div data-st-muted={String(view.muted)}>
               <ToggleField label="Mute notifications" checked={view.muted} onChange={(m) => void setMute(m)} />
+            </div>
+          </PanelSectionRow>
+        )}
+        {view?.conflictCheck !== undefined && (
+          <PanelSectionRow>
+            <div data-st-conflicts={String(view.conflictCheck)}>
+              <ToggleField
+                label="Detect sync conflicts"
+                description="Warn when the sync tool leaves conflict copies of a save."
+                checked={view.conflictCheck}
+                onChange={(on) => void setConflictCheck(on)}
+              />
             </div>
           </PanelSectionRow>
         )}

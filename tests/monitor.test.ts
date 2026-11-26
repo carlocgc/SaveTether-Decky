@@ -64,6 +64,16 @@ test("a problem is toasted once, as the panel's headline", () => {
   assert.equal(monitor.accept(ok([mapping("ryujinx.saves", "replaced", "folder-empty")]), names), "1 app needs attention.");
 });
 
+test("a file conflict is toasted once, and again only after it was resolved", () => {
+  const monitor = createMonitor();
+  const conflict = mapping("cemu.save", "file-conflict");
+  assert.equal(monitor.accept(ok([linked]), names), null);
+  assert.equal(monitor.accept(ok([conflict]), names), "1 app needs attention.");
+  assert.equal(monitor.accept(ok([conflict]), names), null);
+  assert.equal(monitor.accept(ok([linked]), names), null);
+  assert.equal(monitor.accept(ok([conflict]), names), "1 app needs attention.");
+});
+
 test("an amber state at start is toasted, and two new problems share one toast", () => {
   assert.equal(createMonitor().accept(ok([edenBroken, ryujinxNotLinked]), names), "2 apps need attention.");
 });
