@@ -81,8 +81,6 @@ export function wordFor(state: string, reason?: string): { word: string; shade: 
       return { word: "Shared folder missing", shade: "amber" };
     case "retargeted":
       return { word: "Linked elsewhere", shade: "amber" };
-    case "double-seed":
-      return { word: "Two shared copies", shade: "amber" };
     case "foreign-link":
       return { word: "Not SaveTether's link", shade: "amber" };
     case "file-conflict":
