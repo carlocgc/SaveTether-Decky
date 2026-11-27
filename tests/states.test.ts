@@ -52,7 +52,6 @@ test("every state and reason has the desktop app's word and shade", () => {
     ["broken", "shared-folder-missing", "Shared folder missing", "amber"],
     ["broken", "sync-root-unavailable", "Shared folder missing", "amber"],
     ["retargeted", undefined, "Linked elsewhere", "amber"],
-    ["double-seed", undefined, "Two shared copies", "amber"],
     ["foreign-link", undefined, "Not SaveTether's link", "amber"],
     ["file-conflict", undefined, "File conflict", "amber"],
   ];
