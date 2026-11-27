@@ -78,7 +78,7 @@ jobs:
         run: |
           mkdir -p stage/SaveTether/dist out
           cp dist/index.js stage/SaveTether/dist/
-          cp main.py plugin.json package.json LICENSE README.md stage/SaveTether/
+          cp main.py plugin.json package.json LICENSE THIRD-PARTY-LICENSES README.md stage/SaveTether/
           (cd stage && zip -r "../out/savetether-decky-$TAG.zip" SaveTether)
           cd out
           sha256sum * > SHA256SUMS.txt
