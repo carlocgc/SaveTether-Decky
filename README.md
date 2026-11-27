@@ -70,4 +70,4 @@ The phase plan, the tasks and the test flow on the Deck are in SaveTether's repo
 
 ## Licence
 
-MIT, with the Decky plugin template's BSD-3-Clause notice kept as its licence requires. See [LICENSE](LICENSE).
+MIT, see [LICENSE](LICENSE). The Decky plugin template's BSD-3-Clause notice is kept in [THIRD-PARTY-LICENSES](THIRD-PARTY-LICENSES), as its licence requires.
